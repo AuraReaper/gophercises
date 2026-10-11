@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐹 Gophercises Progress Tracker</title>
+<style>
+/* ── Reset ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Design Tokens ──────────────────────────────────── */
+:root {
+  --bg:            #0D1117;
+  --bg-card:       #161B22;
+  --bg-card-h:     #1C2129;
+  --bg-input:      #0A0F1A;
+  --border:        #30363D;
+  --border-h:      #484F58;
+  --go:            #00ACD7;
+  --go-l:          #5DC9E2;
+  --go-dim:        rgba(0,172,215,.10);
+  --go-dim2:       rgba(0,172,215,.05);
+  --text:          #E6EDF3;
+  --text-m:        #8B949E;
+  --text-d:        #636C76;
+  --green:         #3FB950;
+  --green-dim:     rgba(63,185,80,.10);
+  --green-b:       rgba(63,185,80,.25);
+  --yellow:        #D29922;
+  --yellow-dim:    rgba(210,153,34,.10);
+  --yellow-b:      rgba(210,153,34,.25);
+  --red:           #F85149;
+  --red-dim:       rgba(248,81,73,.10);
+  --red-b:         rgba(248,81,73,.25);
+  --r:             10px;
+  --r-sm:          6px;
+  --shadow:        0 8px 32px rgba(0,0,0,.55);
+}
+
+/* ── Base ───────────────────────────────────────────── */
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+/* ── Scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-h); }
+
+/* ── Header ─────────────────────────────────────────── */
+.header {
+  position: relative;
+  background: #080D14;
+  border-bottom: 1px solid var(--border);
+  padding: 60px 24px 52px;
+  text-align: center;
+  overflow: hidden;
+}
+
+/* subtle dot grid */
+.header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(0,172,215,.18) 1px, transparent 1px);
+  background-size: 32px 32px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 90% at 50% 50%, black 30%, transparent 100%);
+  mask-image: radial-gradient(ellipse 90% 90% at 50% 50%, black 30%, transparent 100%);
+  pointer-events: none;
+}
+
+/* radial glow */
+.header::after {
+  content: '';
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 700px;
+  height: 380px;
+  background: radial-gradient(ellipse, rgba(0,172,215,.14) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.hdr-inner { position: relative; z-index: 1; }
+
+.hdr-title {
+  font-size: clamp(1.9rem, 5vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -.028em;
+  line-height: 1.12;
+  background: linear-gradient(140deg, #ffffff 20%, var(--go-l) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 10px;
+}
+
+.hdr-sub {
+  color: var(--text-m);
+  font-size: .98rem;
+  font-style: italic;
+  letter-spacing: .01em;
+  margin-bottom: 44px;
+}
+
+/* ── Progress Bar ───────────────────────────────────── */
+.prog-section {
+  max-width: 580px;
+  margin: 0 auto 36px;
+}
+
+.prog-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: .8rem;
+  color: var(--text-m);
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.prog-pct {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--go-l);
+}
+
+.prog-track {
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  height: 14px;
+  overflow: hidden;
+  position: relative;
+}
+
+.prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--go), var(--go-l));
+  border-radius: 100px;
+  transition: width .9s cubic-bezier(.4,0,.2,1);
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+
+@keyframes shimmer {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(600%);  }
+}
+
+.prog-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 25%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent);
+  animation: shimmer 2.8s ease-in-out infinite;
+}
+
+/* ── Stats Row ──────────────────────────────────────── */
+.stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 18px;
+  transition: border-color .2s;
+}
+
+.stat:hover { border-color: var(--border-h); }
+.stat-emoji { font-size: 1rem; }
+
+.stat-val {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--go-l);
+  min-width: 18px;
+  text-align: center;
+}
+
+.stat-lbl {
+  font-size: .8rem;
+  color: var(--text-m);
+  font-weight: 500;
+}
+
+/* ── Quote ──────────────────────────────────────────── */
+.quote-wrap {
+  max-width: 780px;
+  margin: 32px auto;
+  padding: 0 24px;
+}
+
+.quote-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--go);
+  border-radius: var(--r-sm);
+  padding: 18px 22px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.quote-icon { font-size: 1.7rem; color: var(--go); line-height: 1; flex-shrink: 0; padding-top: 1px; }
+.quote-body { flex: 1; min-width: 0; }
+.quote-text { font-style: italic; color: var(--text-m); font-size: .91rem; line-height: 1.75; }
+.quote-author { font-size: .76rem; color: var(--text-d); margin-top: 7px; font-weight: 500; }
+
+/* ── Main ───────────────────────────────────────────── */
+.main {
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 4px 24px 52px;
+}
+
+.section-hdr {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.section-hdr-text {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-m);
+  white-space: nowrap;
+  letter-spacing: .01em;
+}
+
+.section-hdr-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Grid ───────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+@media (max-width: 1080px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+
+@media (max-width: 640px) {
+  .grid { grid-template-columns: 1fr; }
+  .stats-row { gap: 7px; }
+  .stat { padding: 8px 13px; }
+  .hdr-title { font-size: 1.8rem; }
+}
+
+/* ── Card ───────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes completePulse {
+  0%   { box-shadow: 0 0 0 0   rgba(63,185,80,.55); }
+  45%  { box-shadow: 0 0 0 14px rgba(63,185,80,.18); }
+  100% { box-shadow: 0 0 22px  rgba(63,185,80,.12); }
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  position: relative;
+  overflow: hidden;
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+  animation: fadeUp .45s ease both;
+}
+
+/* top accent line */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: rgba(255,255,255,.04);
+  transition: background .3s;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+  border-color: var(--border-h);
+  background: var(--bg-card-h);
+}
+
+.card.s-ip::before { background: linear-gradient(90deg, var(--yellow), #e3b341); }
+
+.card.s-done {
+  border-color: var(--green-b);
+  box-shadow: 0 0 24px rgba(63,185,80,.08);
+}
+.card.s-done::before { background: linear-gradient(90deg, var(--green), #56d364); }
+
+.card.just-done { animation: completePulse 1.3s ease-out both; }
+
+/* Card top */
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.ex-num {
+  font-size: .7rem;
+  font-weight: 700;
+  color: var(--text-d);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-family: 'SF Mono','Fira Code','Cascadia Code',monospace;
+}
+
+.sbadge {
+  font-size: .68rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 100px;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid;
+}
+
+.sbadge-ns   { background: rgba(99,108,118,.18);  color: var(--text-d);  border-color: rgba(99,108,118,.3); }
+.sbadge-ip   { background: var(--yellow-dim);      color: var(--yellow);  border-color: var(--yellow-b);    }
+.sbadge-done { background: var(--green-dim);       color: var(--green);   border-color: var(--green-b);     }
+
+/* Card body */
+.card-name {
+  font-size: 1.04rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  letter-spacing: -.01em;
+}
+
+.card-desc {
+  font-style: italic;
+  color: var(--text-m);
+  font-size: .84rem;
+  line-height: 1.58;
+}
+
+/* Topics */
+.topics { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.pill {
+  font-size: .67rem;
+  padding: 2px 9px;
+  border-radius: 100px;
+  background: var(--go-dim);
+  color: var(--go-l);
+  border: 1px solid rgba(0,172,215,.18);
+  font-family: 'SF Mono','Fira Code','Cascadia Code',monospace;
+  letter-spacing: .02em;
+}
+
+/* Meta */
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .8rem;
+  color: var(--text-d);
+}
+
+.meta-len { display: flex; align-items: center; gap: 5px; }
+
+.diff { display: flex; gap: 2px; align-items: center; }
+
+.d-icon { font-size: .82rem; filter: grayscale(1) brightness(.3); transition: filter .2s; }
+.d-icon.lit { filter: none; }
+
+/* GitHub */
+.gh-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .77rem;
+  color: var(--text-d);
+  text-decoration: none;
+  transition: color .2s;
+  font-family: 'SF Mono','Fira Code',monospace;
+  letter-spacing: .01em;
+}
+.gh-link:hover { color: var(--go-l); }
+
+/* Action button */
+.act-btn {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: var(--r-sm);
+  font-size: .87rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .18s ease;
+  font-family: inherit;
+  letter-spacing: .01em;
+  border: 1px solid;
+}
+
+.btn-start { background: var(--go-dim);     color: var(--go);    border-color: rgba(0,172,215,.3); }
+.btn-start:hover { background: rgba(0,172,215,.2); border-color: var(--go); color: var(--go-l); transform: translateY(-1px); }
+
+.btn-mark  { background: var(--green-dim);  color: var(--green); border-color: var(--green-b); }
+.btn-mark:hover  { background: rgba(63,185,80,.2);  border-color: var(--green);                transform: translateY(-1px); }
+
+.btn-reset { background: rgba(99,108,118,.08); color: var(--text-m); border-color: var(--border); }
+.btn-reset:hover { background: rgba(99,108,118,.18); color: var(--text); transform: translateY(-1px); }
+
+/* Dates */
+.card-dates {
+  font-size: .75rem;
+  color: var(--text-d);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.date-row { display: flex; align-items: center; gap: 5px; }
+
+/* Notes */
+.notes-lbl {
+  font-size: .7rem;
+  color: var(--text-d);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: 5px;
+}
+
+.notes-ta {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: .81rem;
+  font-family: inherit;
+  padding: 8px 11px;
+  resize: vertical;
+  min-height: 62px;
+  transition: border-color .2s, box-shadow .2s;
+  line-height: 1.55;
+}
+
+.notes-ta:focus {
+  outline: none;
+  border-color: var(--go);
+  box-shadow: 0 0 0 3px rgba(0,172,215,.12);
+}
+
+.notes-ta::placeholder { color: var(--text-d); }
+
+/* ── Danger Zone ────────────────────────────────────── */
+.danger-wrap {
+  max-width: 600px;
+  margin: 12px auto 0;
+  padding: 0 24px 52px;
+}
+
+.danger-card {
+  background: var(--bg-card);
+  border: 1px solid var(--red-b);
+  border-radius: var(--r);
+  padding: 22px 24px;
+}
+
+.danger-hdr {
+  font-size: .78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--red);
+  margin-bottom: 6px;
+}
+
+.danger-desc {
+  font-size: .85rem;
+  color: var(--text-m);
+  margin-bottom: 16px;
+  line-height: 1.55;
+}
+
+.btn-danger {
+  background: var(--red-dim);
+  color: var(--red);
+  border: 1px solid var(--red-b);
+  padding: 9px 20px;
+  border-radius: var(--r-sm);
+  font-size: .86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .18s;
+  font-family: inherit;
+}
+
+.btn-danger:hover { background: rgba(248,81,73,.2); border-color: var(--red); transform: translateY(-1px); }
+
+/* ── Footer ─────────────────────────────────────────── */
+.footer {
+  text-align: center;
+  padding: 28px 24px;
+  border-top: 1px solid var(--border);
+  font-size: .81rem;
+  color: var(--text-d);
+}
+
+.footer a { color: var(--go); text-decoration: none; }
+.footer a:hover { color: var(--go-l); text-decoration: underline; }
+
+/* ── Streak fire animation ──────────────────────────── */
+@keyframes fireBounce {
+  0%, 100% { transform: scale(1)    rotate(-4deg); }
+  50%       { transform: scale(1.25) rotate(4deg);  }
+}
+
+.fire-anim { display: inline-block; animation: fireBounce .75s ease-in-out infinite; }
+
+/* ── Confetti canvas ────────────────────────────────── */
+#conf-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+</style>
+</head>
+<body>
+
+<canvas id="conf-canvas"></canvas>
+
+<!-- ───────────────── HEADER ───────────────── -->
+<header class="header">
+  <div class="hdr-inner">
+    <h1 class="hdr-title">🐹 Gophercises Progress Tracker</h1>
+    <p class="hdr-sub">No AI. Just you, the docs, and Go.</p>
+
+    <div class="prog-section">
+      <div class="prog-label">
+        <span>Overall Progress</span>
+        <span class="prog-pct" id="prog-pct">0 / 20</span>
+      </div>
+      <div class="prog-track">
+        <div class="prog-fill" id="prog-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat">
+        <span class="stat-emoji">✅</span>
+        <span class="stat-val" id="s-done">0</span>
+        <span class="stat-lbl">Completed</span>
+      </div>
+      <div class="stat">
+        <span class="stat-emoji">🔄</span>
+        <span class="stat-val" id="s-ip">0</span>
+        <span class="stat-lbl">In Progress</span>
+      </div>
+      <div class="stat">
+        <span class="stat-emoji">⬜</span>
+        <span class="stat-val" id="s-ns">0</span>
+        <span class="stat-lbl">Not Started</span>
+      </div>
+      <div class="stat">
+        <span id="streak-fire">🔥</span>
+        <span class="stat-val" id="s-streak">0</span>
+        <span class="stat-lbl">Day Streak</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ───────────────── QUOTE ────────────────── -->
+<div class="quote-wrap">
+  <div class="quote-card">
+    <div class="quote-icon">&ldquo;</div>
+    <div class="quote-body">
+      <div class="quote-text" id="qt-text"></div>
+      <div class="quote-author" id="qt-auth"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────────── EXERCISES ────────────── -->
+<main class="main">
+  <div class="section-hdr">
+    <span class="section-hdr-text">📚 All 20 Exercises</span>
+    <div class="section-hdr-line"></div>
+    <span class="section-hdr-text" id="ex-count-lbl" style="color:var(--go-l)"></span>
+  </div>
+  <div class="grid" id="ex-grid"></div>
+</main>
+
+<!-- ───────────────── DANGER ZONE ──────────── -->
+<div class="danger-wrap">
+  <div class="danger-card">
+    <div class="danger-hdr">⚠️ Danger Zone</div>
+    <div class="danger-desc">
+      Permanently reset all exercise progress, notes, dates, and streak data.
+      This action <strong style="color:var(--red)">cannot be undone</strong>.
+    </div>
+    <button type="button" class="btn-danger" onclick="resetAll()">🗑️ Reset All Progress</button>
+  </div>
+</div>
+
+<!-- ───────────────── FOOTER ───────────────── -->
+<footer class="footer">
+  Built to track progress through
+  <a href="https://gophercises.com" target="_blank" rel="noopener">gophercises.com</a>
+  by Jon Calhoun
+</footer>
+
+<script>
+/* ============================================================
+   DATA
+   ============================================================ */
+const EX = [
+  { id: 1,  name: 'Quiz Game',
+    github: 'gophercises/quiz',
+    desc:   'Create a program to run timed quizzes via the command line.',
+    topics: ['strings','channels','goroutines','flags','CSVs','time'],
+    len: '36:52', diff: 2 },
+
+  { id: 2,  name: 'URL Shortener',
+    github: 'gophercises/urlshort',
+    desc:   'Code an http.Handler that forwards paths to other URLs (similar to Bitly).',
+    topics: ['YAML','middleware','maps','http-handlers'],
+    len: '26:03', diff: 2 },
+
+  { id: 3,  name: 'Choose Your Own Adventure',
+    github: 'gophercises/cyoa',
+    desc:   'Design a choose your own adventure book renderer that shows the story via a web application.',
+    topics: ['http-handlers','json','templates','functional-options'],
+    len: '1:04:30', diff: 3 },
+
+  { id: 4,  name: 'HTML Link Parser',
+    github: 'gophercises/link',
+    desc:   'Build a package to parse links from an HTML file.',
+    topics: ['parsing-html','io-readers','recursion'],
+    len: '41:39', diff: 2 },
+
+  { id: 5,  name: 'Sitemap Builder',
+    github: 'gophercises/sitemap',
+    desc:   'Use the HTML link parser from ex. 4 to build a sitemap of public websites.',
+    topics: ['xml','web-requests','BFS'],
+    len: '1:28:53', diff: 3 },
+
+  { id: 6,  name: 'Hacker Rank Problem',
+    github: 'gophercises/hr1',
+    desc:   'Code the solutions to a few string-related hacker rank problems.',
+    topics: ['bytes','strings','regexp','hacker-rank'],
+    len: '51:11', diff: 2 },
+
+  { id: 7,  name: 'CLI Task Manager',
+    github: 'gophercises/task',
+    desc:   'Create a command line app to manage a TODO list stored in BoltDB.',
+    topics: ['BoltDB','CLIs'],
+    len: '1:30:28', diff: 3 },
+
+  { id: 8,  name: 'Phone Number Normalizer',
+    github: 'gophercises/phone',
+    desc:   'Write a program that will normalize an SQL table of phone numbers into a single format.',
+    topics: ['sql','regexp','testing'],
+    len: '1:52:28', diff: 3 },
+
+  { id: 9,  name: 'Deck of Cards',
+    github: 'gophercises/deck',
+    desc:   'Code a package used to build decks of cards with custom options, shuffling, and sorting.',
+    topics: ['testing','go-generate','iota','sorting','shuffling','functional-options'],
+    len: '1:15:51', diff: 3 },
+
+  { id: 10, name: 'Blackjack',
+    github: 'gophercises/blackjack',
+    desc:   'Using the deck of cards in ex. 9, create a blackjack game.',
+    topics: ['game-state','copy','loops'],
+    len: '1:26:39', diff: 3 },
+
+  { id: 11, name: 'Blackjack AI',
+    github: 'gophercises/blackjack',
+    desc:   'Refactor blackjack into a package with an exported AI interface for bots.',
+    topics: ['interfaces','simulation','bot'],
+    len: '2:16:36', diff: 4 },
+
+  { id: 12, name: 'File Renaming Tool',
+    github: 'gophercises/rename',
+    desc:   'Build a tool used to rename files with a common pattern.',
+    topics: ['filepath','os','ioutil','regexp'],
+    len: '1:33:00', diff: 2 },
+
+  { id: 13, name: 'Quiet HN',
+    github: 'gophercises/quiet_hn',
+    desc:   'Add concurrency and caching to a Hacker News web application.',
+    topics: ['concurrency','channels','caching','race-flag'],
+    len: '1:23:09', diff: 4 },
+
+  { id: 14, name: 'Recover Middleware',
+    github: 'gophercises/recover',
+    desc:   'Build HTTP middleware that recovers from panics and outputs stack traces.',
+    topics: ['panic','recover','defer','middleware','stack-traces'],
+    len: '47:27', diff: 3 },
+
+  { id: 15, name: 'Recover Middleware w/ Source Code',
+    github: 'gophercises/recover',
+    desc:   'Expand upon ex. 14: add links to source code with syntax highlighting.',
+    topics: ['strings','middleware','chroma'],
+    len: '59:46', diff: 4 },
+
+  { id: 16, name: 'Twitter Retweet Contest CLI',
+    github: 'gophercises/twitter',
+    desc:   'Create a CLI to run a Twitter retweet contest and pick winners.',
+    topics: ['twitter-api','net/http','math/rand','os','sync'],
+    len: '1:43:03', diff: 4 },
+
+  { id: 17, name: 'Secrets API and CLI',
+    github: 'gophercises/secret',
+    desc:   'Create a package for storing/retrieving encrypted secrets, plus a CLI.',
+    topics: ['crypto/cipher','crypto/aes','crypto/md5','io reader/writer','interface-chaining'],
+    len: '1:58:45', diff: 4 },
+
+  { id: 18, name: 'Image Transform Service',
+    github: 'gophercises/transform',
+    desc:   'Create a web server where users can upload and transform images.',
+    topics: ['os/exec','io.ReadSeeker','io/ioutil','primitive-CLI'],
+    len: '2:11:30', diff: 4 },
+
+  { id: 19, name: 'Building Images (png & svg)',
+    github: 'gophercises/image',
+    desc:   'Learn to create images in Go code: PNG bar charts and SVG charts.',
+    topics: ['image','image/draw','image/png','SVGo'],
+    len: '1:20:03', diff: 3 },
+
+  { id: 20, name: 'Building PDFs',
+    github: 'gophercises/pdf',
+    desc:   'Learn to create PDFs in Go: invoices and completion certificates.',
+    topics: ['PDFs','jung-kurt/gofpdf'],
+    len: '3:15:31', diff: 4 },
+];
+
+const QUOTES = [
+  { text: 'The bigger the interface, the weaker the abstraction.',
+    by:   'Rob Pike' },
+  { text: 'Make it correct, make it clear, make it concise, make it fast. In that order.',
+    by:   'Wes Dyer' },
+  { text: 'A little copying is better than a little dependency.',
+    by:   'Go Proverbs' },
+  { text: 'Clear is better than clever.',
+    by:   'Dave Cheney' },
+  { text: 'Errors are values.',
+    by:   'Rob Pike' },
+  { text: "Don't communicate by sharing memory; share memory by communicating.",
+    by:   'Go Proverbs' },
+  { text: "Gofmt's style is no one's favorite, yet gofmt is everyone's favorite.",
+    by:   'Rob Pike' },
+  { text: 'The strength of a language lies not in the features it has, but in the features it does not have.',
+    by:   'Rob Pike' },
+  { text: 'Documentation is for users. Comments are for maintainers.',
+    by:   'Go Community Wisdom' },
+  { text: 'Accept interfaces, return structs.',
+    by:   'Go Proverbs' },
+];
+
+/* ============================================================
+   STORAGE
+   ============================================================ */
+const SKEY = 'gophercises_tracker';
+
+function blankEx() {
+  return { status: 'not-started', startDate: null, doneDate: null, notes: '' };
+}
+
+function initState() {
+  const st = { exercises: {}, streak: 0, lastOpenedDate: null };
+  EX.forEach(e => { st.exercises[e.id] = blankEx(); });
+  return st;
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(SKEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    // Ensure every exercise key exists (handles newly added exercises)
+    EX.forEach(e => { if (!p.exercises[e.id]) p.exercises[e.id] = blankEx(); });
+    return p;
+  } catch (_) { return null; }
+}
+
+function save() {
+  localStorage.setItem(SKEY, JSON.stringify(ST));
+}
+
+let ST; // global state
+
+/* ============================================================
+   STREAK
+   ============================================================ */
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function tickStreak() {
+  const t = todayStr();
+  if (ST.lastOpenedDate === t) return; // already counted today
+
+  const hasProgress = Object.values(ST.exercises).some(e => e.status !== 'not-started');
+
+  if (hasProgress) {
+    if (!ST.lastOpenedDate) {
+      ST.streak = 1;
+    } else {
+      const prev = new Date(ST.lastOpenedDate + 'T00:00:00');
+      const curr = new Date(t               + 'T00:00:00');
+      const days = Math.round((curr - prev) / 86400000);
+      ST.streak  = days === 1 ? (ST.streak || 0) + 1 : 1;
+    }
+  }
+
+  ST.lastOpenedDate = t;
+}
+
+/* ============================================================
+   STATS
+   ============================================================ */
+function refreshStats() {
+  const vals = Object.values(ST.exercises);
+  const done = vals.filter(e => e.status === 'done').length;
+  const ip   = vals.filter(e => e.status === 'in-progress').length;
+  const ns   = vals.filter(e => e.status === 'not-started').length;
+  const pct  = Math.round((done / EX.length) * 100);
+
+  document.getElementById('prog-pct').textContent   = done + ' / ' + EX.length;
+  document.getElementById('prog-fill').style.width  = pct + '%';
+  document.getElementById('s-done').textContent     = done;
+  document.getElementById('s-ip').textContent       = ip;
+  document.getElementById('s-ns').textContent       = ns;
+  document.getElementById('s-streak').textContent   = ST.streak || 0;
+  document.getElementById('ex-count-lbl').textContent =
+    done === EX.length ? '🎉 All done!' : pct + '% complete';
+
+  // Animate fire when streak >= 7
+  const fireEl = document.getElementById('streak-fire');
+  fireEl.innerHTML = (ST.streak || 0) >= 7
+    ? '<span class="fire-anim">🔥</span>'
+    : '🔥';
+}
+
+/* ============================================================
+   CARD RENDERING HELPERS
+   ============================================================ */
+function siFor(status) {
+  return {
+    'not-started': { cls: 'sbadge-ns',   lbl: 'Not Started',  btnCls: 'btn-start', btnTxt: '▶ Start'      },
+    'in-progress': { cls: 'sbadge-ip',   lbl: 'In Progress',  btnCls: 'btn-mark',  btnTxt: '✓ Mark Done'  },
+    'done':        { cls: 'sbadge-done', lbl: '✓ Done',        btnCls: 'btn-reset', btnTxt: '↺ Reset'      },
+  }[status];
+}
+
+function cardCls(status) {
+  return 'card' +
+    (status === 'in-progress' ? ' s-ip'   : '') +
+    (status === 'done'        ? ' s-done' : '');
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function datesHTML(exSt) {
+  let h = '';
+  if (exSt.startDate) h += `<div class="date-row">📅 Started: ${fmtDate(exSt.startDate)}</div>`;
+  if (exSt.doneDate)  h += `<div class="date-row">🏁 Completed: ${fmtDate(exSt.doneDate)}</div>`;
+  return h;
+}
+
+const GH_SVG = `<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
+    0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15
+    -.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07
+    -1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21
+    2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16
+    1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0
+    1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+</svg>`;
+
+/* ============================================================
+   CREATE CARD
+   ============================================================ */
+function createCard(ex) {
+  const exSt = ST.exercises[ex.id];
+  const si   = siFor(exSt.status);
+
+  const diffIcons = Array.from({ length: 5 }, (_, i) =>
+    `<span class="d-icon${i < ex.diff ? ' lit' : ''}" title="${ex.diff}/5 difficulty">🐹</span>`
+  ).join('');
+
+  const pills = ex.topics.map(t => `<span class="pill">${t}</span>`).join('');
+
+  const el = document.createElement('div');
+  el.id        = 'card-' + ex.id;
+  el.className = cardCls(exSt.status);
+  el.style.animationDelay = ((ex.id - 1) * 0.034) + 's';
+
+  el.innerHTML = `
+    <div class="card-top">
+      <span class="ex-num">Ex. ${String(ex.id).padStart(2,'0')}</span>
+      <span class="sbadge ${si.cls}" id="badge-${ex.id}">${si.lbl}</span>
+    </div>
+    <div class="card-name">${ex.name}</div>
+    <div class="card-desc">${ex.desc}</div>
+    <div class="topics">${pills}</div>
+    <div class="card-meta">
+      <div class="meta-len">⏱ <span>${ex.len}</span></div>
+      <div class="diff" title="Difficulty ${ex.diff}/5">${diffIcons}</div>
+    </div>
+    <a class="gh-link"
+       href="https://github.com/${ex.github}"
+       target="_blank"
+       rel="noopener"
+       title="View on GitHub">
+      ${GH_SVG} ${ex.github}
+    </a>
+    <button type="button"
+            class="act-btn ${si.btnCls}"
+            id="btn-${ex.id}"
+            onclick="cycle(${ex.id})">
+      ${si.btnTxt}
+    </button>
+    <div class="card-dates" id="dates-${ex.id}">${datesHTML(exSt)}</div>
+    <div>
+      <div class="notes-lbl">📝 Notes</div>
+      <textarea class="notes-ta"
+                id="notes-${ex.id}"
+                placeholder="Add notes, observations, links to your solution…"
+                aria-label="Notes for ${ex.name}"
+                onblur="saveNote(${ex.id}, this.value)"></textarea>
+    </div>`;
+
+  // Set notes safely via property (avoids </textarea> injection)
+  el.querySelector('#notes-' + ex.id).value = exSt.notes || '';
+
+  return el;
+}
+
+/* ============================================================
+   UPDATE CARD (surgical — preserves textarea value)
+   ============================================================ */
+function updateCard(id) {
+  const exSt = ST.exercises[id];
+  const si   = siFor(exSt.status);
+  const card = document.getElementById('card-' + id);
+
+  card.className = cardCls(exSt.status);
+
+  const badge = document.getElementById('badge-' + id);
+  badge.className   = 'sbadge ' + si.cls;
+  badge.textContent = si.lbl;
+
+  const btn = document.getElementById('btn-' + id);
+  btn.className   = 'act-btn ' + si.btnCls;
+  btn.textContent = si.btnTxt;
+
+  document.getElementById('dates-' + id).innerHTML = datesHTML(exSt);
+}
+
+/* ============================================================
+   RENDER ALL CARDS
+   ============================================================ */
+function renderAll() {
+  const grid = document.getElementById('ex-grid');
+  grid.innerHTML = '';
+  EX.forEach(ex => grid.appendChild(createCard(ex)));
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+function cycle(id) {
+  const exSt = ST.exercises[id];
+  const t    = todayStr();
+
+  if (exSt.status === 'not-started') {
+    exSt.status    = 'in-progress';
+    exSt.startDate = t;
+
+    // Edge case: first progress started this session — ensure streak is at least 1
+    if (!ST.streak) {
+      const allVals  = Object.values(ST.exercises);
+      const wasEmpty = allVals.every(e => e.status === 'not-started' || e.id === id);
+      if (wasEmpty) { ST.streak = 1; ST.lastOpenedDate = t; }
+    }
+
+    save();
+    updateCard(id);
+    refreshStats();
+
+  } else if (exSt.status === 'in-progress') {
+    exSt.status  = 'done';
+    exSt.doneDate = t;
+
+    save();
+    updateCard(id);
+    refreshStats();
+
+    // Completion effects
+    const card = document.getElementById('card-' + id);
+    card.classList.add('just-done');
+    setTimeout(() => card.classList.remove('just-done'), 1500);
+    launchConfetti();
+
+  } else { // done → reset
+    exSt.status    = 'not-started';
+    exSt.startDate = null;
+    exSt.doneDate  = null;
+    // notes intentionally preserved
+
+    save();
+    updateCard(id);
+    refreshStats();
+  }
+}
+
+function saveNote(id, val) {
+  ST.exercises[id].notes = val;
+  save();
+}
+
+function resetAll() {
+  if (!confirm('Reset ALL progress, notes, and streak data?\n\nThis cannot be undone.')) return;
+  ST = initState();
+  save();
+  renderAll();
+  refreshStats();
+}
+
+/* ============================================================
+   CONFETTI
+   ============================================================ */
+let _confId  = null;
+let _confCtx = null;
+
+function launchConfetti() {
+  if (_confId) {
+    cancelAnimationFrame(_confId);
+    if (_confCtx) _confCtx.clearRect(0, 0, 9999, 9999);
+  }
+
+  const canvas = document.getElementById('conf-canvas');
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = _confCtx = canvas.getContext('2d');
+
+  const COLORS = ['#00ACD7','#5DC9E2','#3FB950','#F0F6FC','#D29922','#FF7B72','#FFA657','#D2A8FF'];
+  const N = 140;
+  const pieces = Array.from({ length: N }, () => {
+    const isCirc = Math.random() > 0.45;
+    return {
+      x:      Math.random() * canvas.width,
+      y:      -(Math.random() * canvas.height * 0.45 + 10),
+      w:      isCirc ? 0 : Math.random() * 12 + 5,
+      h:      isCirc ? 0 : Math.random() * 7  + 3,
+      r:      isCirc ? Math.random() * 5  + 2 : 0,
+      color:  COLORS[Math.floor(Math.random() * COLORS.length)],
+      vy:     Math.random() * 3  + 1.5,
+      vx:     (Math.random() - 0.5) * 2.8,
+      angle:  Math.random() * Math.PI * 2,
+      spin:   (Math.random() - 0.5) * 0.18,
+      isCirc,
+    };
+  });
+
+  let frame = 0;
+  const MAX  = 210;
+
+  (function tick() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const alpha = frame < 150 ? 1 : Math.max(0, 1 - (frame - 150) / 60);
+
+    pieces.forEach(p => {
+      p.y     += p.vy;
+      p.x     += p.vx;
+      p.angle += p.spin;
+      p.vy    += 0.035; // gentle gravity
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle   = p.color;
+      if (p.isCirc) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
+        ctx.rotate(p.angle);
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      }
+      ctx.restore();
+    });
+
+    frame++;
+    if (frame < MAX) {
+      _confId = requestAnimationFrame(tick);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      _confId = null;
+    }
+  })();
+}
+
+/* ============================================================
+   QUOTE
+   ============================================================ */
+function pickQuote() {
+  const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  document.getElementById('qt-text').textContent = q.text;
+  document.getElementById('qt-auth').textContent = '— ' + q.by;
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  ST = loadState() || initState();
+  tickStreak();
+  save();
+  pickQuote();
+  renderAll();
+  refreshStats();
+
+  window.addEventListener('resize', () => {
+    const c = document.getElementById('conf-canvas');
+    c.width  = window.innerWidth;
+    c.height = window.innerHeight;
+  });
+});
+</script>
+</body>
+</html>
