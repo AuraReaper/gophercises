@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+
+    <style>
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            background: #f4f1eb;
+            color: #333;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .page {
+            width: 80%;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 40px;
+            background: #FFFCF6;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 0;
+        }
+
+        p {
+            line-height: 1.8;
+            text-indent: 1em;
+            white-space: pre-line;
+        }
+
+        ul {
+            border-top: 1px dotted #ccc;
+            padding: 16px 0 0;
+            list-style: none;
+        }
+
+        li {
+            margin: 12px 0;
+        }
+
+        a {
+            color: #6295b5;
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: #7792a2;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <h1>{{.Title}}</h1>
+
+        {{range .Story}}
+        <p>{{.}}</p>
+        {{end}}
+
+        <ul>
+            {{range .Options}}
+            <li>
+                <a href="{{.Arc}}">{{.Text}}</a>
+            </li>
+            {{end}}
+        </ul>
+    </div>
+</body>
+</html>
